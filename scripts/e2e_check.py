@@ -141,7 +141,7 @@ def main() -> int:
             c.expect("soft_lock" in ",".join(good.json()["lock_events"]), "soft lock placed for bid exposure", ",".join(good.json()["lock_events"]))
 
     print("\n--- 5. overweight refused locally ---")
-    opens = l.get("/api/shipments?status=all").json()["shipments"]
+    opens = l.get("/api/shipments?status=all&limit=2000").json()["shipments"]
     over = next((s for s in opens if s["status"] == "open" and s["weight_lbs"] > 44000), None)
     if over is None:
         for _ in range(4):
@@ -164,7 +164,7 @@ def main() -> int:
     booked_ids = [s["external_id"] for s in l.get("/api/shipments?status=active").json()["shipments"]]
 
     def resolved():
-        rows = {s["external_id"]: s for s in l.get("/api/shipments?status=all").json()["shipments"]}
+        rows = {s["external_id"]: s for s in l.get("/api/shipments?status=all&limit=2000").json()["shipments"]}
         mine = [rows[i] for i in booked_ids if i in rows]
         done = [s for s in mine if s["status"] in ("completed", "bid_lost")]
         return mine if mine and len(done) == len(mine) else None
@@ -187,7 +187,7 @@ def main() -> int:
 
     print("\n--- 7. KPIs reconcile ---")
     k = l.get("/api/kpis").json()
-    booked = [s for s in l.get("/api/shipments?status=all").json()["shipments"] if s["status"] in ("accepted", "in_transit", "completed") and s["payout"]]
+    booked = [s for s in l.get("/api/shipments?status=all&limit=2000").json()["shipments"] if s["status"] in ("accepted", "in_transit", "completed") and s["payout"]]
     c.expect(k["booked_loads"] == len(booked), "booked_loads matches shipments", f"{k['booked_loads']}")
     c.expect(abs(k["booked_revenue"] - sum(s["payout"] for s in booked)) < 1, "revenue matches", f"{k['booked_revenue']}")
     c.expect(k["empty_mile_ratio"] is None or 0 <= k["empty_mile_ratio"] < 0.5, "empty-mile ratio sane", f"{k['empty_mile_ratio']}")
