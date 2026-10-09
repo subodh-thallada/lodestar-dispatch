@@ -1,6 +1,6 @@
 # Demo runbook (≈ 6 minutes)
 
-A hosted copy runs at https://lodestar.salmonsand-d6496a70.canadacentral.azurecontainerapps.io
+A hosted copy runs at https://lodestar-production-4820.up.railway.app
 (same build, board posting every 20 s). Everything below also runs locally with two terminals. Speeds and buttons referenced are in
 the console header.
 

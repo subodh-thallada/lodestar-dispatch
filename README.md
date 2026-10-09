@@ -3,7 +3,7 @@
 **An intelligent load board and autonomous dispatch engine** for the SFI International
 Engineering Mini-Challenge.
 
-**Live demo:** https://lodestar.salmonsand-d6496a70.canadacentral.azurecontainerapps.io
+**Live demo:** https://lodestar-production-4820.up.railway.app
 (board and Lodestar run together in one container; the board posts a new load every 20 s). Lodestar ingests the simulated customer load board in real time,
 owns the carrier's fleet schedule as temporal locks, prices open bids from history, enforces
 margin and deadhead guardrails on every booking, and can run the desk on auto-pilot — with
@@ -82,16 +82,21 @@ Open **http://127.0.0.1:8100**. API docs are at `/docs`. For frontend developmen
 ## Deploying
 
 `deploy/Dockerfile` builds one image that runs the provided board (internal :8000) and
-Lodestar with the built console (public `$PORT`, default 8100), so any container host
-works. The live demo is on Azure Container Apps:
+Lodestar with the built console (public `$PORT`), so any container host works. The live
+demo runs on Railway; CI (`.github/workflows/ci.yml`) runs the backend tests, builds the
+console, builds this image and boots it before anything is merged.
 
 ```bash
-az acr build -r <registry> -t lodestar:v1 -f deploy/Dockerfile .
-az containerapp create -n lodestar -g <group> --environment <env>   --image <registry>.azurecr.io/lodestar:v1 --registry-server <registry>.azurecr.io   --target-port 8100 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.5 --memory 1.0Gi   --env-vars ORDER_INTERVAL_SECONDS=20
+railway init --name lodestar-dispatch
+railway add --service lodestar --variables ORDER_INTERVAL_SECONDS=20
+railway variables --service lodestar --set RAILWAY_DOCKERFILE_PATH=deploy/Dockerfile
+railway up --service lodestar        # uploads the working tree, including the board submodule
+railway domain --service lodestar
 ```
 
 State is SQLite inside the container, so a redeploy resets the sandbox (the board
 re-seeds itself and Lodestar re-syncs on boot). WebSockets need no extra configuration.
+To check a hosted copy end to end: `python scripts/e2e_check.py --lodestar https://<host> --no-board`.
 
 ## Design
 
