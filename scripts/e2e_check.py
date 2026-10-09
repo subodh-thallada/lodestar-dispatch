@@ -14,7 +14,7 @@ What it proves, in order:
   3. accepting a recommended fixed-rate load locks the unit the board bound
   4. a lowball bid is blocked by guardrails; the suggested bid goes through
   5. an overweight load is refused before the board is even called
-  6. at 1800x the bid resolves, loads deliver, locks release, units re-home
+  6. at 3600x the bid resolves, loads deliver, locks release, units re-home
   7. KPIs reconcile with the shipments table
 """
 
@@ -25,6 +25,9 @@ import sys
 import time
 
 import httpx
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 
 class Check:
@@ -146,8 +149,8 @@ def main() -> int:
     else:
         print("  SKIP  no overweight load appeared (board emits ~8%)")
 
-    print("\n--- 6. lifecycle at 1800x ---")
-    l.post("/api/sim/speed", json={"simulation_speed": 1800})
+    print("\n--- 6. lifecycle at 3600x ---")
+    l.post("/api/sim/speed", json={"simulation_speed": 3600})
     booked_ids = [s["external_id"] for s in l.get("/api/shipments?status=active").json()["shipments"]]
 
     def resolved():
@@ -156,7 +159,7 @@ def main() -> int:
         done = [s for s in mine if s["status"] in ("completed", "bid_lost")]
         return mine if mine and len(done) == len(mine) else None
 
-    mine = wait_for(resolved, timeout=120, every=2)
+    mine = wait_for(resolved, timeout=240, every=2)  # a 2,400-mile load needs ~60 sim hours
     l.post("/api/sim/speed", json={"simulation_speed": 1})
     c.expect(bool(mine), "all booked loads reached completed/bid_lost", ", ".join(f"{s['external_id']}={s['status']}" for s in (mine or [])))
     sched = l.get("/api/schedule?hours_back=72").json()

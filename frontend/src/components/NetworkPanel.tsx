@@ -55,12 +55,12 @@ export function NetworkPanel({ terminals, units, forecast, active, open }: { ter
                   <div className="bg-slate-600" style={{ width: `${(t.out_of_service / Math.max(t.total_units, 1)) * 100}%` }} />
                 </div>
                 <div className="mt-1 flex items-center justify-between text-[10px] text-slate-500">
-                  <span>
-                    util {pct(t.utilization, 0)} · {t.open_loads_from_here} open from here
+                  <span className="whitespace-nowrap">
+                    util {pct(t.utilization, 0)} · {t.open_loads_from_here} open
                   </span>
-                  <span className="font-mono">
-                    {fc.map((p) => p.free).join(' › ')}
-                    <span className="ml-1 text-slate-600">free @0/2/6/12/24h</span>
+                  <span className="whitespace-nowrap font-mono" title="projected free units now / +2h / +6h / +12h / +24h">
+                    {fc.map((p) => p.free).join('›')}
+                    <span className="ml-1 text-slate-600">@0·2·6·12·24h</span>
                   </span>
                 </div>
               </button>

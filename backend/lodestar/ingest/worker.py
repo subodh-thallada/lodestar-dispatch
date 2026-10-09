@@ -44,6 +44,16 @@ class IngestWorker:
         self._poll_now = asyncio.Event()
         self._last_fleet_sync: datetime | None = None
         self._last_sim_time: datetime | None = None
+        self._ws_connected = False
+
+    def _update_mode(self) -> None:
+        """websocket while the socket is up, polling while only REST works, else disconnected."""
+        if not state.ingest.board_reachable:
+            state.ingest.mode = "disconnected"
+        elif self._ws_connected:
+            state.ingest.mode = "websocket"
+        else:
+            state.ingest.mode = "polling"
 
     # ------------------------------------------------------------------ bootstrap
     async def wait_for_board(self) -> None:
@@ -229,6 +239,7 @@ class IngestWorker:
                     await self.sync_fleet()
                 state.ingest.board_reachable = True
                 state.ingest.last_error = None
+                self._update_mode()
                 await hub.broadcast("clock", clock.snapshot())
                 ticks += 1
                 if ticks % 100 == 0:
@@ -236,7 +247,7 @@ class IngestWorker:
             except BoardError as exc:
                 state.ingest.board_reachable = False
                 state.ingest.last_error = exc.detail
-                state.ingest.mode = "disconnected"
+                self._update_mode()
                 log.warning("poll failed: %s", exc.detail)
             except Exception:  # keep the loop alive no matter what
                 log.exception("poll tick failed")
@@ -251,16 +262,18 @@ class IngestWorker:
         while not self.stop.is_set():
             try:
                 async with websockets.connect(url, open_timeout=10, ping_interval=20) as ws:
-                    state.ingest.mode = "websocket"
+                    self._ws_connected = True
+                    self._update_mode()
                     log.info("Connected to board WebSocket %s", url)
                     async for raw in ws:
                         if self.stop.is_set():
                             break
                         await self.handle_ws_message(raw)
             except Exception as exc:
-                if state.ingest.mode == "websocket":
+                if self._ws_connected:
                     log.warning("Board WebSocket dropped (%s); falling back to polling", exc)
-                state.ingest.mode = "polling" if state.ingest.board_reachable else "disconnected"
+                self._ws_connected = False
+                self._update_mode()
             await asyncio.sleep(settings.ws_reconnect_seconds)
 
     async def handle_ws_message(self, raw: str | bytes) -> None:
