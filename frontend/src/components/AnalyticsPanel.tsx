@@ -6,17 +6,16 @@ import { Figure, Panel, Th } from './ui'
 
 /** One ruled trip-summary line, the atlas' mileage-table idiom rather than a row of tiles. */
 export function KpiStrip({ kpis }: { kpis: Kpis | null }) {
-  if (!kpis) return <div className="h-[62px] rounded-sm border border-rule bg-paper-2/60" aria-hidden />
-  const mt = kpis.booked_margin > 0 ? 'good' : kpis.booked_margin < 0 ? 'bad' : 'neutral'
+  if (!kpis) return <div className="h-[66px] border-y-2 border-ink/20" aria-hidden />
   return (
-    <div className="grid grid-cols-2 gap-y-3 rounded-sm border border-rule bg-paper-2 px-2 py-2.5 shadow-slip sm:grid-cols-4 xl:grid-cols-8 xl:gap-y-0 [&>*]:px-2.5 xl:[&>*+*]:border-l xl:[&>*+*]:border-rule">
-      <Figure label="Booked margin" value={money(kpis.booked_margin)} sub={`${pct(kpis.booked_margin_pct)} of ${money(kpis.booked_revenue)}`} tone={mt} />
+    <div className="grid grid-cols-2 gap-y-3 border-y-2 border-ink px-1 py-2.5 sm:grid-cols-4 xl:grid-cols-8 xl:gap-y-0 [&>*]:px-2.5 xl:[&>*+*]:border-l xl:[&>*+*]:border-rule">
+      <Figure label="Booked margin" value={money(kpis.booked_margin)} sub={`${pct(kpis.booked_margin_pct)} of ${money(kpis.booked_revenue)}`} tone={kpis.booked_margin < 0 ? 'bad' : 'neutral'} />
       <Figure label="Loads booked" value={kpis.booked_loads} sub={`${kpis.opportunities_seen} seen · ${kpis.declined_loads} declined`} />
       <Figure label="Empty-mile ratio" value={pct(kpis.empty_mile_ratio)} sub={`${Math.round(kpis.deadhead_miles)} / ${Math.round(kpis.loaded_miles)} mi`} tone={kpis.empty_mile_ratio != null && kpis.empty_mile_ratio > 0.1 ? 'warn' : 'neutral'} />
-      <Figure label="Utilization" value={pct(kpis.utilization_now, 0)} sub={`${kpis.units_busy_now} of ${kpis.fleet_units} units busy`} tone="info" />
-      <Figure label="Bids" value={`${kpis.bids_won}W · ${kpis.bids_lost}L`} sub={`${kpis.bids_pending} pending · ${money(kpis.bid_exposure_usd)} exposure`} tone="accent" />
+      <Figure label="Utilization" value={pct(kpis.utilization_now, 0)} sub={`${kpis.units_busy_now} of ${kpis.fleet_units} units busy`} />
+      <Figure label="Bids" value={`${kpis.bids_won}W · ${kpis.bids_lost}L`} sub={`${kpis.bids_pending} pending · ${money(kpis.bid_exposure_usd)} exposure`} />
       <Figure label="Avg margin / load" value={money(kpis.avg_margin_per_load)} sub={`${money(kpis.revenue_per_loaded_mile, 2)} per loaded mile`} />
-      <Figure label="Losses avoided" value={money(kpis.losses_avoided_usd)} sub="declined negative-margin loads" tone="good" />
+      <Figure label="Losses avoided" value={money(kpis.losses_avoided_usd)} sub="declined negative-margin loads" />
       <Figure label="Guardrail holds" value={kpis.guardrail_blocks} sub={`${kpis.board_rejections} board 409s`} tone={kpis.board_rejections ? 'warn' : 'neutral'} />
     </div>
   )
@@ -58,7 +57,7 @@ export function AnalyticsPanel({ kpis }: { kpis: Kpis | null }) {
                   <td className="py-1.5 pl-4 pr-3 font-condensed text-[14px] font-bold uppercase tracking-[0.06em] text-ink">{l.lane_id}</td>
                   <td className="py-1.5 pr-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-20 overflow-hidden rounded-[2px] bg-paper-3">
+                      <div className="h-1.5 w-20 overflow-hidden bg-paper-3">
                         <div className="h-full bg-road" style={{ width: `${(l.shipments / maxShip) * 100}%` }} />
                       </div>
                       <span className="text-ink-3">{l.shipments}</span>

@@ -37,7 +37,7 @@ export function SchedulePanel({ simNow, terminals, refreshKey }: { simNow: numbe
       subtitle="Each bar is a temporal lock. Yellow = empty move to pickup, blue = loaded, grey = turnaround, dashed = soft lock from an outstanding bid."
       right={
         <div className="flex flex-wrap items-center gap-2">
-          <select value={hub} onChange={(e) => setHub(e.target.value)} className="h-7 rounded-[3px] border border-rule-2 bg-paper px-2 font-condensed text-[12px] font-semibold uppercase tracking-[0.06em] text-ink" aria-label="filter by hub">
+          <select value={hub} onChange={(e) => setHub(e.target.value)} className="h-7 border border-rule-2 bg-paper px-2 font-condensed text-[12px] font-semibold uppercase tracking-[0.06em] text-ink" aria-label="filter by hub">
             <option value="ALL">All hubs</option>
             {terminals.map((t) => (
               <option key={t.code} value={t.code}>

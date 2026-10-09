@@ -60,7 +60,7 @@ export function NetworkPanel({ terminals, units, forecast, active, open }: { ter
                     <div className="text-[11px] text-ink-3">{t.city}</div>
                   </td>
                   <td className="py-2 pr-3 align-middle">
-                    <div className="flex h-2 w-28 overflow-hidden rounded-[2px] bg-paper-3" title={`${t.busy_units} busy · ${t.soft_locked_units} bid · ${t.committed_units} next · ${t.free_units} free · ${t.out_of_service} out of service`}>
+                    <div className="flex h-2 w-28 overflow-hidden bg-paper-3" title={`${t.busy_units} busy · ${t.soft_locked_units} bid · ${t.committed_units} next · ${t.free_units} free · ${t.out_of_service} out of service`}>
                       <div className="bg-road" style={{ width: `${(t.busy_units / total) * 100}%` }} />
                       <div className="bg-carbon" style={{ width: `${(t.soft_locked_units / total) * 100}%` }} />
                       <div className="bg-yellow" style={{ width: `${(t.committed_units / total) * 100}%` }} />

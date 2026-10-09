@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Play } from 'lucide-react'
+import { ChevronRight, Play } from 'lucide-react'
 import { api } from '../api'
 import type { Decision, Policy } from '../types'
 import { cx, fmtSim, money } from '../lib/format'
@@ -159,8 +159,8 @@ export function AutopilotPanel({ policy, decisions, autopilot, onPolicy }: { pol
                 {d.reasons && d.reasons.length > 0 && (
                   <ul className="mt-1 space-y-0.5 text-[12px] leading-snug text-ink-2">
                     {d.reasons.slice(0, 3).map((r, i) => (
-                      <li key={i} className="flex gap-1.5">
-                        <span className="select-none text-rule-2">›</span>
+                      <li key={i} className="flex gap-1">
+                        <ChevronRight size={13} className="mt-[2px] shrink-0 text-rule-2" />
                         <span>{r}</span>
                       </li>
                     ))}

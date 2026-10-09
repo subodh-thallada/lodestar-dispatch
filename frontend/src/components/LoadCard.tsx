@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, Check, ChevronDown, ChevronUp, Gavel, Link2, X } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, ChevronRight, ChevronUp, Gavel, Link2, X } from 'lucide-react'
 import { api, ApiError } from '../api'
 import { countdown, cx, fmtSim, lbs, miles, money, parseTs, pct } from '../lib/format'
 import type { Evaluation, Recommendation, Shipment } from '../types'
@@ -8,6 +8,8 @@ import { useToast } from './Toast'
 
 const recTone: Record<Recommendation, Tone> = { accept: 'good', bid: 'accent', decline: 'bad', skip: 'bad', hold: 'warn' }
 const recLabel: Record<Recommendation, string> = { accept: 'Accept', bid: 'Bid', decline: 'Decline', skip: 'Pass', hold: 'Hold' }
+
+export type Outcome = { label: string; tone: Tone }
 
 function interpWin(ev: Evaluation, bid: number): number | null {
   const c = ev.pricing?.ev_curve
@@ -36,16 +38,19 @@ export function Guardrails({ ev }: { ev: Evaluation }) {
   )
 }
 
-type Outcome = { label: string; tone: Tone } | null
-
-export function LoadCard({ s, simNow, onChanged }: { s: Shipment; simNow: number; onChanged?: () => void }) {
+/**
+ * One route-log entry. Entries are separated by rules, never boxed; the entry's own top
+ * rule is its expiry, draining left to right. A decision lands as a stamp and the entry
+ * prints in grayscale until the board retires it — nothing disappears, it cancels.
+ */
+export function LoadCard({ s, simNow, onChanged, onStamped, outcome: initialOutcome }: { s: Shipment; simNow: number; onChanged?: () => void; onStamped?: (s: Shipment, o: Outcome) => void; outcome?: Outcome | null }) {
   const ev = s.evaluation
   const toast = useToast()
   const [busy, setBusy] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [override, setOverride] = useState(false)
   const [bid, setBid] = useState<string>('')
-  const [outcome, setOutcome] = useState<Outcome>(null)
+  const [outcome, setOutcome] = useState<Outcome | null>(initialOutcome ?? null)
 
   useEffect(() => {
     if (ev?.pricing && bid === '') setBid(String(Math.round(ev.pricing.suggested_bid)))
@@ -62,10 +67,11 @@ export function LoadCard({ s, simNow, onChanged }: { s: Shipment; simNow: number
   const liveWin = ev && isBid ? interpWin(ev, bidNum) : null
   const liveEv = liveWin != null && liveMargin != null ? liveWin * liveMargin : null
   const blocked = ev ? !ev.bookable : false
-  const expiredNow = remaining <= 0
+  const expiredNow = remaining <= 0 || s.status !== 'open'
   const fatal = expiredNow || (ev ? ev.guardrails.some((g) => !g.passed && !g.overridable) : false)
   const rec = s.recommendation ?? ev?.recommendation ?? null
   const done = outcome != null
+  const printed = done || expiredNow
 
   const act = async (action: 'accept' | 'decline' | 'bid') => {
     setBusy(action)
@@ -73,9 +79,10 @@ export function LoadCard({ s, simNow, onChanged }: { s: Shipment; simNow: number
       const body: { bid_rate?: number; override?: boolean } = { override }
       if (action === 'bid') body.bid_rate = bidNum
       const r = await api.act(s.external_id, action, body)
-      setOutcome(action === 'bid' ? { label: 'Bid in', tone: 'accent' } : action === 'accept' ? { label: 'Booked', tone: 'good' } : { label: 'Declined', tone: 'bad' })
+      const o: Outcome = action === 'bid' ? { label: 'Bid in', tone: 'accent' } : action === 'accept' ? { label: 'Booked', tone: 'good' } : { label: 'Declined', tone: 'bad' }
+      setOutcome(o)
+      onStamped?.(s, o)
       toast.push('success', action === 'bid' ? `Bid ${money(bidNum)} submitted` : action === 'accept' ? `${s.external_id} booked` : `${s.external_id} declined`, r.message)
-      window.setTimeout(() => onChanged?.(), 900)
     } catch (e) {
       const err = e as ApiError
       const payload = err.payload as { message?: string } | undefined
@@ -90,8 +97,8 @@ export function LoadCard({ s, simNow, onChanged }: { s: Shipment; simNow: number
   const ruleColor = urgency < 0.2 ? 'bg-red' : urgency < 0.5 ? 'bg-yellow' : 'bg-road'
 
   return (
-    <article className={cx('relative animate-lay-down rounded-sm border bg-paper-2 shadow-slip transition-[filter,opacity] duration-500', done ? 'grayscale opacity-60' : 'border-rule', !done && (rec === 'accept' || rec === 'bid') && 'border-rule')} aria-label={`${s.external_id} ${s.lane_id}`}>
-      {/* expiry: an ink rule draining left to right */}
+    <article className={cx('relative animate-lay-down transition-[filter,opacity] duration-500', printed && 'grayscale opacity-55')} aria-label={`${s.external_id} ${s.lane_id}`}>
+      {/* the entry's top rule is its expiry, draining left to right */}
       <div className="h-[3px] w-full bg-paper-3" aria-hidden>
         <div className={cx('h-full transition-[width] duration-500 ease-linear', ruleColor)} style={{ width: `${urgency * 100}%` }} />
       </div>
@@ -104,17 +111,17 @@ export function LoadCard({ s, simNow, onChanged }: { s: Shipment; simNow: number
         </div>
       )}
 
-      <div className="p-3.5">
+      <div className="px-1 pb-4 pt-3">
         <header className="flex items-start gap-3">
           <Shield kind={isBid ? 'bid' : 'bin'} className="mt-0.5" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <h3 className="flex min-w-0 items-center gap-1.5 font-condensed text-[19px] font-bold uppercase leading-none tracking-[0.03em] text-ink">
-                <span className="truncate">
+              <h3 className="flex min-w-0 flex-wrap items-center gap-x-1.5 font-condensed text-[21px] font-bold uppercase leading-none tracking-[0.03em] text-ink">
+                <span>
                   {s.origin.city}, {s.origin.state}
                 </span>
-                <ArrowRight size={15} className="shrink-0 text-ink-3" />
-                <span className="truncate">
+                <ArrowRight size={16} className="shrink-0 text-ink-3" />
+                <span>
                   {s.destination.city}, {s.destination.state}
                 </span>
               </h3>
@@ -125,18 +132,20 @@ export function LoadCard({ s, simNow, onChanged }: { s: Shipment; simNow: number
               )}
               {overweight && <Tag tone="bad">overweight</Tag>}
             </div>
-            <div className="label mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 normal-case tracking-[0.02em]">
+            <div className="label mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 normal-case tracking-[0.02em]">
               <span className="num uppercase tracking-[0.06em]">{s.external_id}</span>
               <span className="num uppercase tracking-[0.06em] text-ink-2">{s.lane_id}</span>
               <span className="num">{miles(s.distance_miles)}</span>
               <span className="num">{lbs(s.weight_lbs)}</span>
-              <span className="num">
-                pickup {fmtSim(s.pickup_at, { date: true })} → drop {fmtSim(s.delivery_at, { date: true })}
+              <span className="num inline-flex flex-wrap items-center gap-x-1">
+                <span className="whitespace-nowrap">pickup {fmtSim(s.pickup_at, { date: true })}</span>
+                <ArrowRight size={11} className="text-ink-3" />
+                <span className="whitespace-nowrap">drop {fmtSim(s.delivery_at, { date: true })}</span>
               </span>
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1.5">
-            {rec && <Stamp tone={recTone[rec]}>{recLabel[rec]}</Stamp>}
+            {expiredNow && !done ? <Stamp tone="neutral">Expired</Stamp> : rec && <Stamp tone={recTone[rec]}>{recLabel[rec]}</Stamp>}
             <div className={cx('num font-condensed text-[15px] font-bold leading-none', remaining < 60 ? 'text-red-ink' : 'text-ink-2')} title="time left to act">
               {countdown(remaining)}
             </div>
@@ -179,8 +188,8 @@ export function LoadCard({ s, simNow, onChanged }: { s: Shipment; simNow: number
           <div className="mt-2 text-[13px] leading-snug text-ink-2">
             <ul className="space-y-0.5">
               {(open ? ev.reasons : ev.reasons.slice(0, 2)).map((r, i) => (
-                <li key={i} className="flex gap-1.5">
-                  <span className="select-none text-rule-2">›</span>
+                <li key={i} className="flex gap-1">
+                  <ChevronRight size={13} className="mt-[3px] shrink-0 text-rule-2" />
                   <span>{r}</span>
                 </li>
               ))}
@@ -197,38 +206,38 @@ export function LoadCard({ s, simNow, onChanged }: { s: Shipment; simNow: number
         <footer className="mt-3 flex flex-wrap items-center gap-2 border-t border-rule pt-3">
           {isBid ? (
             <>
-              <label className="num flex h-9 items-center gap-1 rounded-[3px] border border-rule-2 bg-paper px-2 font-condensed text-[16px] font-bold focus-within:border-road">
+              <label className="num flex h-9 items-center gap-1 border border-rule-2 bg-paper px-2 font-condensed text-[16px] font-bold focus-within:border-road">
                 <span className="text-ink-3">$</span>
-                <input value={bid} onChange={(e) => setBid(e.target.value.replace(/[^0-9.]/g, ''))} inputMode="decimal" className="w-24 bg-transparent text-ink outline-none" aria-label="bid amount in US dollars" disabled={done} />
+                <input value={bid} onChange={(e) => setBid(e.target.value.replace(/[^0-9.]/g, ''))} inputMode="decimal" className="w-24 bg-transparent text-ink outline-none" aria-label="bid amount in US dollars" disabled={printed} />
               </label>
               {ev?.pricing && (
                 <div className="flex gap-1">
-                  <Button size="sm" onClick={() => setBid(String(Math.round(ev.pricing!.suggested_bid)))} title="Expected-profit-optimal bid from the pricing model" disabled={done}>
+                  <Button size="sm" onClick={() => setBid(String(Math.round(ev.pricing!.suggested_bid)))} title="Expected-profit-optimal bid from the pricing model" disabled={printed}>
                     suggest {money(ev.pricing.suggested_bid)}
                   </Button>
-                  <Button size="sm" onClick={() => setBid(String(Math.round(ev.pricing!.floor_bid)))} title="Cost-plus floor from policy" disabled={done}>
+                  <Button size="sm" onClick={() => setBid(String(Math.round(ev.pricing!.floor_bid)))} title="Cost-plus floor from policy" disabled={printed}>
                     floor {money(ev.pricing.floor_bid)}
                   </Button>
                 </div>
               )}
-              <Button tone="accent" disabled={busy != null || done || fatal || bidNum <= 0 || (blocked && !override)} onClick={() => act('bid')}>
+              <Button tone="accent" disabled={busy != null || printed || fatal || bidNum <= 0 || (blocked && !override)} onClick={() => act('bid')}>
                 <Gavel size={14} /> {busy === 'bid' ? 'Submitting…' : 'Submit bid'}
               </Button>
-              <Button tone="bad" size="sm" disabled={busy != null || done} onClick={() => act('decline')} title="Decline without bidding">
+              <Button tone="bad" size="sm" disabled={busy != null || printed} onClick={() => act('decline')} title="Decline without bidding">
                 <X size={12} /> Pass
               </Button>
             </>
           ) : (
             <>
-              <Button tone="good" disabled={busy != null || done || fatal || (blocked && !override)} onClick={() => act('accept')}>
+              <Button tone="good" disabled={busy != null || printed || fatal || (blocked && !override)} onClick={() => act('accept')}>
                 <Check size={14} strokeWidth={3} /> {busy === 'accept' ? 'Booking…' : 'Accept'}
               </Button>
-              <Button tone="bad" disabled={busy != null || done} onClick={() => act('decline')}>
+              <Button tone="bad" disabled={busy != null || printed} onClick={() => act('decline')}>
                 <X size={14} strokeWidth={3} /> {busy === 'decline' ? 'Declining…' : 'Decline'}
               </Button>
             </>
           )}
-          {blocked && !fatal && !done && (
+          {blocked && !fatal && !printed && (
             <label className="ml-auto flex cursor-pointer items-center gap-1.5 font-condensed text-[12px] font-semibold uppercase tracking-[0.06em] text-yellow-ink">
               <input type="checkbox" checked={override} onChange={(e) => setOverride(e.target.checked)} className="accent-yellow-ink" />
               override guardrails

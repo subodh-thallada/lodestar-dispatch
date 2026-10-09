@@ -33,7 +33,7 @@ export function Header({ clock, simNow, ingest, policy, wsConnected, onRefresh }
 
   return (
     <header className="z-30 border-b border-rule bg-paper md:sticky md:top-0">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 lg:px-6">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2 lg:px-6">
         <div className="flex items-center gap-2.5">
           <Mark />
           <div className="leading-none">
@@ -42,7 +42,7 @@ export function Header({ clock, simNow, ingest, policy, wsConnected, onRefresh }
           </div>
         </div>
 
-        <div className="flex items-center gap-3 border-l border-rule pl-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-l border-rule pl-4 lg:pl-5">
           <div>
             <div className="num font-condensed text-[26px] font-bold leading-none tracking-[0.04em] text-ink" aria-label="simulation time">
               {time}
@@ -51,7 +51,7 @@ export function Header({ clock, simNow, ingest, policy, wsConnected, onRefresh }
               {date} · sim UTC · <span className={cx(speed > 1 ? 'text-yellow-ink' : 'text-ink-3')}>{speed}×</span>
             </div>
           </div>
-          <div className="flex items-stretch overflow-hidden rounded-[3px] border border-rule-2" role="group" aria-label="simulation speed">
+          <div className="flex items-stretch border border-rule-2" role="group" aria-label="simulation speed">
             {[1, 60, 300, 900].map((s, i) => (
               <button key={s} onClick={() => setSpeed(s)} className={cx('num px-2 font-condensed text-[12px] font-bold transition-colors duration-150', i > 0 && 'border-l border-rule-2', speed === s ? 'bg-ink text-paper-2' : 'text-ink-3 hover:bg-paper-3 hover:text-ink')} title={`Set the board's simulation speed to ${s}×`}>
                 {s}×
@@ -60,7 +60,7 @@ export function Header({ clock, simNow, ingest, policy, wsConnected, onRefresh }
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-l border-rule pl-5">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-l border-rule pl-4 lg:pl-5">
           <Legend tone={boardTone} pulse={boardTone === 'good'} title={ingest?.last_error ?? `board link: ${ingest?.mode}`}>
             board {ingest ? (ingest.board_reachable ? ingest.mode : 'offline') : '…'}
           </Legend>

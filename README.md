@@ -1,7 +1,10 @@
 # Lodestar Dispatch
 
 **An intelligent load board and autonomous dispatch engine** for the SFI International
-Engineering Mini-Challenge. Lodestar ingests the simulated customer load board in real time,
+Engineering Mini-Challenge.
+
+**Live demo:** https://lodestar.salmonsand-d6496a70.canadacentral.azurecontainerapps.io
+(board and Lodestar run together in one container; the board posts a new load every 20 s). Lodestar ingests the simulated customer load board in real time,
 owns the carrier's fleet schedule as temporal locks, prices open bids from history, enforces
 margin and deadhead guardrails on every booking, and can run the desk on auto-pilot — with
 every decision explained.
@@ -76,6 +79,30 @@ Open **http://127.0.0.1:8100**. API docs are at `/docs`. For frontend developmen
 </tr>
 </table>
 
+## Deploying
+
+`deploy/Dockerfile` builds one image that runs the provided board (internal :8000) and
+Lodestar with the built console (public `$PORT`, default 8100), so any container host
+works. The live demo is on Azure Container Apps:
+
+```bash
+az acr build -r <registry> -t lodestar:v1 -f deploy/Dockerfile .
+az containerapp create -n lodestar -g <group> --environment <env>   --image <registry>.azurecr.io/lodestar:v1 --registry-server <registry>.azurecr.io   --target-port 8100 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.5 --memory 1.0Gi   --env-vars ORDER_INTERVAL_SECONDS=20
+```
+
+State is SQLite inside the container, so a redeploy resets the sandbox (the board
+re-seeds itself and Lodestar re-syncs on boot). WebSockets need no extra configuration.
+
+## Design
+
+The console is drawn as a motor carrier's road atlas: map paper with a coordinate grid,
+hairline ink rules instead of boxes, road-hierarchy colour as the only semantic system
+(interstate blue for action and loaded miles, highway red for urgent and negative, route
+green for accept, urban yellow for caution and empty miles, carbon purple for bids),
+Barlow Condensed labels, route shields for load type, and decisions that land as inked
+stamps. Tokens and rules are recorded in [DESIGN.md](DESIGN.md); product context in
+[PRODUCT.md](PRODUCT.md).
+
 ## Repository layout
 
 ```
@@ -93,6 +120,7 @@ lodestar-dispatch/
 ├── frontend/                   React 19 + Vite + Tailwind dispatcher console
 ├── board/                      provided Freight Challenge API (git submodule, unmodified)
 ├── scripts/                    run_*, backtest.py, e2e_check.py
+├── deploy/                     Dockerfile + start.sh (board + Lodestar in one image)
 └── docs/                       ARCHITECTURE.md, REPORT.md, DEMO.md, screenshots/
 ```
 

@@ -51,7 +51,7 @@ function Console() {
                   <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
                   <span className="font-condensed text-[12px] font-bold uppercase tracking-[0.1em]">{short}</span>
                   {n ? (
-                    <span className={cx('num absolute right-2 top-1.5 rounded-[2px] px-1 font-condensed text-[10px] font-bold leading-4 md:right-2.5 md:top-2.5', id === 'network' ? 'bg-yellow text-ink' : 'bg-ink text-paper-2')}>
+                    <span className={cx('num absolute right-2 top-1.5 px-1 font-condensed text-[10px] font-bold leading-4 md:right-2.5 md:top-2.5', id === 'network' ? 'bg-yellow text-ink' : 'bg-ink text-paper-2')}>
                       {n}
                     </span>
                   ) : null}

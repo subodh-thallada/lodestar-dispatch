@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+**/.venv
+**/__pycache__
+**/*.db
+**/*.db-wal
+**/*.db-shm
+frontend/node_modules
+frontend/dist
+board/.venv
+board/freight_challenge.db
+docs
+.impeccable
+.playwright-mcp
