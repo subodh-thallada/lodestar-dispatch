@@ -112,7 +112,7 @@ export function AnalyticsPanel({ kpis }: { kpis: Kpis | null }) {
                           <div className="absolute inset-y-0 left-0 rounded bg-sky-500/60" style={{ width: `${c.predicted * 100}%` }} />
                           <div className="absolute inset-y-0 w-0.5 bg-emerald-400" style={{ left: `${c.actual * 100}%` }} />
                         </div>
-                        <span className="w-20 font-mono text-slate-400">
+                        <span className="w-28 whitespace-nowrap font-mono text-slate-400">
                           {pct(c.predicted, 0)} / {pct(c.actual, 0)} <span className="text-slate-600">n{c.n}</span>
                         </span>
                       </div>

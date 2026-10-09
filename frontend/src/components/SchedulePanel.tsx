@@ -77,12 +77,18 @@ export function SchedulePanel({ simNow, terminals, refreshKey }: { simNow: numbe
                     const d = parseTs(l.delivery_at)
                     const e = parseTs(l.ends_at)
                     const soft = l.kind === 'soft'
+                    const clamp = (v: number) => Math.max(0, Math.min(100, v))
+                    const xs = clamp(x(s))
+                    const xp = clamp(x(p))
+                    const xd = clamp(x(d))
+                    const xe = clamp(x(e))
+                    if (xe - xs <= 0) return null
                     const title = `${l.external_id} ${l.lane_id}\n${l.origin_city} → ${l.destination_city}\ndepart ${fmtSim(l.depart_at, { date: true })} · pickup ${fmtSim(l.pickup_at, { date: true })} · deliver ${fmtSim(l.delivery_at, { date: true })}\n${Math.round(l.deadhead_miles)} mi empty · payout ${money(l.payout)} · margin ${money(l.margin)}${soft ? '\n(soft lock: outstanding bid)' : ''}`
                     return (
-                      <div key={l.id} className="absolute inset-y-1 group" style={{ left: `${x(s)}%`, width: `${Math.max(0.3, x(e) - x(s))}%` }} title={title}>
-                        <div className={cx('absolute inset-y-0 rounded-l', soft ? 'border border-dashed border-amber-400/70' : 'bg-amber-500/70')} style={{ left: 0, width: `${((p - s) / (e - s)) * 100}%` }} />
-                        <div className={cx('absolute inset-y-0', soft ? 'border border-dashed border-violet-400/80 bg-violet-500/10' : 'bg-sky-500/80')} style={{ left: `${((p - s) / (e - s)) * 100}%`, width: `${((d - p) / (e - s)) * 100}%` }} />
-                        <div className={cx('absolute inset-y-0 rounded-r', soft ? 'border border-dashed border-slate-500/70' : 'bg-slate-600/70')} style={{ left: `${((d - s) / (e - s)) * 100}%`, width: `${((e - d) / (e - s)) * 100}%` }} />
+                      <div key={l.id} className="group absolute inset-y-1" style={{ left: `${xs}%`, width: `${Math.max(0.3, xe - xs)}%` }} title={title}>
+                        {xp > xs && <div className={cx('absolute inset-y-0 rounded-l', soft ? 'border border-dashed border-amber-400/70' : 'bg-amber-500/70')} style={{ left: 0, width: `${((xp - xs) / (xe - xs)) * 100}%` }} />}
+                        {xd > xp && <div className={cx('absolute inset-y-0', soft ? 'border border-dashed border-violet-400/80 bg-violet-500/10' : 'bg-sky-500/80')} style={{ left: `${((xp - xs) / (xe - xs)) * 100}%`, width: `${((xd - xp) / (xe - xs)) * 100}%` }} />}
+                        {xe > xd && <div className={cx('absolute inset-y-0 rounded-r', soft ? 'border border-dashed border-slate-500/70' : 'bg-slate-600/70')} style={{ left: `${((xd - xs) / (xe - xs)) * 100}%`, width: `${((xe - xd) / (xe - xs)) * 100}%` }} />}
                         <div className="pointer-events-none absolute inset-0 flex items-center overflow-hidden px-1 font-mono text-[10px] text-white/90">
                           <span className="truncate">{l.lane_id}</span>
                         </div>
