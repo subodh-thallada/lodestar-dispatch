@@ -28,3 +28,7 @@ Thumbs.db
 *.swp
 *.db-shm
 *.db-wal
+
+# design tooling scratch
+.impeccable/
+.playwright-mcp/
