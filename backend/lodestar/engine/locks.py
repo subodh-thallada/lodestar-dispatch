@@ -200,8 +200,9 @@ def create_lock(db: Session, plan: LockPlan, shipment: Shipment, kind: str, now:
 
 def release_locks(db: Session, shipment: Shipment, reason: str, now: datetime, kinds: tuple[str, ...] = ("hard", "soft")) -> int:
     n = 0
-    for lock in shipment.locks:
-        if lock.status == "active" and lock.kind in kinds:
+    locks = db.scalars(select(UnitLock).where(UnitLock.shipment_id == shipment.id, UnitLock.status == "active"))
+    for lock in locks:
+        if lock.kind in kinds:
             lock.status = "released"
             lock.released_at = now
             lock.release_reason = reason
