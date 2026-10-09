@@ -248,7 +248,13 @@ export function useSorted(list: Shipment[], mode: 'score' | 'expiry' | 'margin')
     const arr = [...list]
     if (mode === 'expiry') arr.sort((a, b) => parseTs(a.expires_at) - parseTs(b.expires_at))
     else if (mode === 'margin') arr.sort((a, b) => (b.evaluation?.margin ?? -1e9) - (a.evaluation?.margin ?? -1e9))
-    else arr.sort((a, b) => (b.evaluation?.score ?? -1e9) - (a.evaluation?.score ?? -1e9))
+    else
+      arr.sort((a, b) => {
+        const ba = a.evaluation?.bookable ? 0 : 1
+        const bb = b.evaluation?.bookable ? 0 : 1
+        if (ba !== bb) return ba - bb
+        return (b.evaluation?.score ?? -1e9) - (a.evaluation?.score ?? -1e9)
+      })
     return arr
   }, [list, mode])
 }

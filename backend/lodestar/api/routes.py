@@ -169,7 +169,8 @@ def list_shipments(
         q = q.where(Shipment.eval_recommendation == recommendation)
     rows = list(db.scalars(q.order_by(Shipment.first_seen_at.desc()).limit(limit)))
     if status == "open":
-        rows.sort(key=lambda s: (-(s.eval_score or -1e9), s.expires_at))
+        # Bookable loads first (every guardrail passes), then by score, then by urgency.
+        rows.sort(key=lambda s: (not ((s.eval_json or {}).get("bookable", False)), -(s.eval_score or -1e9), s.expires_at))
     return {"sim_time": clock.snapshot()["sim_time_utc"], "count": len(rows), "shipments": [shipment_to_dict(s, now) for s in rows]}
 
 
