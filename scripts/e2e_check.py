@@ -8,6 +8,9 @@ Prerequisites (two terminals):
 Then:
   python scripts/e2e_check.py [--board http://127.0.0.1:8000] [--lodestar http://127.0.0.1:8100]
 
+Against a hosted copy where only Lodestar is exposed (the board runs inside the container):
+  python scripts/e2e_check.py --lodestar https://<host> --no-board
+
 What it proves, in order:
   1. Lodestar is ready, synced to the board clock, history loaded, model trained
   2. new loads on the board appear in Lodestar with an evaluation within a few seconds
@@ -63,10 +66,16 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--board", default="http://127.0.0.1:8000")
     ap.add_argument("--lodestar", default="http://127.0.0.1:8100")
+    ap.add_argument("--no-board", action="store_true", help="board not reachable directly (hosted demo): drive it through Lodestar's /api/sim proxies and skip board cross-checks")
     args = ap.parse_args()
     c = Check()
-    b = httpx.Client(base_url=args.board, timeout=30)
-    l = httpx.Client(base_url=args.lodestar, timeout=30)
+    l = httpx.Client(base_url=args.lodestar, timeout=60)
+    b = None if args.no_board else httpx.Client(base_url=args.board, timeout=30)
+
+    def spawn(count: int) -> dict:
+        if b is None:
+            return l.post("/api/sim/spawn", json={"count": count}).json()
+        return b.post("/simulation/spawn-orders", json={"count": count}).json()
 
     print("\n--- 1. readiness ---")
     try:
@@ -82,8 +91,8 @@ def main() -> int:
     l.post("/api/sim/speed", json={"simulation_speed": 1})
 
     print("\n--- 2. ingestion ---")
-    spawn = b.post("/simulation/spawn-orders", json={"count": 10}).json()
-    ids = set(spawn["external_ids"])
+    spawned = spawn(10)
+    ids = set(spawned["external_ids"])
 
     def seen():
         got = {s["external_id"]: s for s in l.get("/api/shipments?status=open").json()["shipments"]}
@@ -99,7 +108,7 @@ def main() -> int:
     opens = l.get("/api/shipments?status=open").json()["shipments"]
     acc = next((s for s in opens if s["order_type"] == "fixed_rate" and s["recommendation"] == "accept"), None)
     if acc is None:
-        b.post("/simulation/spawn-orders", json={"count": 12})
+        spawn(12)
         time.sleep(4)
         opens = l.get("/api/shipments?status=open").json()["shipments"]
         acc = next((s for s in opens if s["order_type"] == "fixed_rate" and s["recommendation"] == "accept"), None)
@@ -110,8 +119,9 @@ def main() -> int:
         if ok:
             ship = r.json()["shipment"]
             c.expect(ship["status"] == "accepted" and ship["assigned_unit_number"], "unit bound", f"{ship['assigned_unit_number']} margin {ship['booked_margin']}")
-            board_order = b.get(f"/orders/{acc['external_id']}").json()
-            c.expect(board_order["assigned_driver_id"] == ship["assigned_unit_id"], "lock mirrors board assignment", f"unit id {ship['assigned_unit_id']}")
+            if b is not None:
+                board_order = b.get(f"/orders/{acc['external_id']}").json()
+                c.expect(board_order["assigned_driver_id"] == ship["assigned_unit_id"], "lock mirrors board assignment", f"unit id {ship['assigned_unit_id']}")
             sched = l.get("/api/schedule").json()
             locks = [lk for u in sched["units"] for lk in u["locks"] if lk["external_id"] == acc["external_id"]]
             c.expect(len(locks) == 1 and locks[0]["kind"] == "hard", "hard lock on schedule", f"{locks[0]['starts_at']} -> {locks[0]['ends_at']}" if locks else "")
@@ -135,7 +145,7 @@ def main() -> int:
     over = next((s for s in opens if s["status"] == "open" and s["weight_lbs"] > 44000), None)
     if over is None:
         for _ in range(4):
-            b.post("/simulation/spawn-orders", json={"count": 15})
+            spawn(15)
             time.sleep(3)
             opens = l.get("/api/shipments?status=open").json()["shipments"]
             over = next((s for s in opens if s["weight_lbs"] > 44000), None)
@@ -165,11 +175,15 @@ def main() -> int:
     sched = l.get("/api/schedule?hours_back=72").json()
     live = [lk for u in sched["units"] for lk in u["locks"] if lk["external_id"] in booked_ids and lk["status"] == "active"]
     c.expect(not live, "locks released after delivery", f"{len(live)} still active")
-    units = {u["unit_number"]: u for u in l.get("/api/fleet/units").json()["units"]}
-    board_units = {u["unit_number"]: u for u in b.get("/fleet/units").json()}
-    terms = {t["id"]: t["code"] for t in b.get("/terminals").json()}
-    mismatch = [n for n, u in units.items() if terms[board_units[n]["home_terminal_id"]] != u["home_terminal_code"]]
-    c.expect(not mismatch, "unit home hubs match the board after re-homing", f"{len(units)} units checked")
+    if b is not None:
+        units = {u["unit_number"]: u for u in l.get("/api/fleet/units").json()["units"]}
+        board_units = {u["unit_number"]: u for u in b.get("/fleet/units").json()}
+        terms = {t["id"]: t["code"] for t in b.get("/terminals").json()}
+        mismatch = [n for n, u in units.items() if terms[board_units[n]["home_terminal_id"]] != u["home_terminal_code"]]
+        c.expect(not mismatch, "unit home hubs match the board after re-homing", f"{len(units)} units checked")
+    else:
+        rehomed = [u for u in l.get("/api/fleet/units").json()["units"] if not u["unit_number"].startswith(u["home_terminal_code"])]
+        c.expect(len(rehomed) >= 1, "capacity moved with the freight (units re-homed)", f"{len(rehomed)} units now homed away from their seed hub")
 
     print("\n--- 7. KPIs reconcile ---")
     k = l.get("/api/kpis").json()
