@@ -24,17 +24,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-80 flex-col gap-2">
+      <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-[22rem] max-w-[calc(100vw-2rem)] flex-col gap-2" aria-live="polite">
         {items.map((t) => {
           const Icon = t.kind === 'success' ? CheckCircle2 : t.kind === 'error' ? XCircle : t.kind === 'warn' ? TriangleAlert : Info
-          const color = t.kind === 'success' ? 'border-emerald-500/40 text-emerald-300' : t.kind === 'error' ? 'border-rose-500/40 text-rose-300' : t.kind === 'warn' ? 'border-amber-500/40 text-amber-300' : 'border-sky-500/40 text-sky-300'
+          const color = t.kind === 'success' ? 'text-green-ink' : t.kind === 'error' ? 'text-red-ink' : t.kind === 'warn' ? 'text-yellow-ink' : 'text-road-ink'
+          const edge = t.kind === 'success' ? 'border-t-green' : t.kind === 'error' ? 'border-t-red' : t.kind === 'warn' ? 'border-t-yellow' : 'border-t-road'
           return (
-            <div key={t.id} className={cx('pointer-events-auto rounded-lg border bg-slate-900/95 p-3 shadow-xl backdrop-blur', color)}>
+            <div key={t.id} className={cx('pointer-events-auto animate-lay-down border border-rule border-t-2 bg-paper-2 p-3 shadow-lift', edge)}>
               <div className="flex items-start gap-2">
-                <Icon size={16} className="mt-0.5 shrink-0" />
+                <Icon size={16} className={cx('mt-0.5 shrink-0', color)} />
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-slate-100">{t.title}</div>
-                  {t.detail && <div className="mt-0.5 break-words text-xs text-slate-300">{t.detail}</div>}
+                  <div className="font-condensed text-[14px] font-bold uppercase tracking-[0.06em] text-ink">{t.title}</div>
+                  {t.detail && <div className="mt-0.5 break-words text-xs leading-snug text-ink-2">{t.detail}</div>}
                 </div>
               </div>
             </div>

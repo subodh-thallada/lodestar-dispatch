@@ -4,9 +4,19 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#efe9d8" />
+    <meta name="description" content="Lodestar Dispatch: live load board, temporal fleet locks, margin-aware booking and auto-pilot for the Freight Challenge." />
     <title>Lodestar Dispatch</title>
   </head>
   <body>
+    <!--
+    THESIS: A dispatch console drawn as the motor carrier's road atlas: map paper, ink rules, road-hierarchy colour as the only semantic system. It refuses the dark ops-console with neon accents.
+    OWN-WORLD: buff map paper with a faint coordinate grid; hairline ink rules instead of boxes; interstate blue for action and loaded miles, highway red for urgent and negative, route green for accept, urban yellow for caution and empty miles, carbon purple for bids; Barlow Condensed caps for every label and heading, Barlow tabular numerals for data; route shields mark load type; decisions land as inked stamps.
+    STORY: A dispatcher reads each load like a route-log entry, sees margin after the empty move at a glance, stamps accept/decline/bid, and watches capacity move across the atlas.
+    FIRST VIEWPORT: index-tab rail at the left edge; masthead with wordmark, sim clock readout and legend dots; one ruled trip-summary line of KPIs; two ruled columns, Book-It-Now left and Open Bids right, each entry carrying its shield, lane, economics table, guardrail legend, reasons and stamp. Primary action: the green ACCEPT / purple SUBMIT BID on each entry.
+    FORM: road atlas, candidate 3 of 7; seed key 5f86e516; raised by: time-ranked fixed columns (split-flap), action colour only on actionable elements (consumer app), stamp-as-state and nothing disappears, it cancels (ticket wallet), expired entries print in grayscale (character catalog), fore-edge tab rail with extent (manual), the map owns its field (catalog sleeve).
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,31 +1,195 @@
 @import "tailwindcss";
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow-condensed/500.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+
+/*
+  Road-atlas world. Paper ground, ink rules, road-hierarchy colour as the semantic system:
+  interstate blue = primary / selection / loaded, highway red = urgent / negative,
+  route green = positive / accept, urban yellow = caution / hold / empty miles,
+  carbon purple = bids and soft locks.
+*/
+@theme {
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-condensed: "Barlow Condensed", "Barlow", ui-sans-serif, sans-serif;
+
+  --color-paper: #efe9d8;
+  --color-paper-2: #f8f5ec;
+  --color-paper-3: #e4dcc5;
+  --color-paper-4: #d9d0b6;
+  --color-ink: #1b1915;
+  --color-ink-2: #45413a;
+  --color-ink-3: #6f6a5c;
+  --color-rule: #cbc2a8;
+  --color-rule-2: #a8a08a;
+
+  --color-road: #1d4f9e;
+  --color-road-ink: #183f7d;
+  --color-road-soft: #d7e1f3;
+  --color-red: #c0392b;
+  --color-red-ink: #9c2b20;
+  --color-red-soft: #f3d9d5;
+  --color-green: #2e7d4f;
+  --color-green-ink: #23613d;
+  --color-green-soft: #d6e8dc;
+  --color-yellow: #e6c35a;
+  --color-yellow-ink: #7d5f12;
+  --color-yellow-soft: #f6e9bd;
+  --color-carbon: #5b4b8a;
+  --color-carbon-ink: #473a70;
+  --color-carbon-soft: #dfd9ec;
+
+  --shadow-slip: 0 1px 0 rgba(27, 25, 21, 0.08), 0 6px 14px -8px rgba(27, 25, 21, 0.35);
+  --shadow-lift: 0 2px 0 rgba(27, 25, 21, 0.06), 0 14px 28px -14px rgba(27, 25, 21, 0.4);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-stamp: cubic-bezier(0.16, 1, 0.3, 1);
+}
 
 :root {
-  color-scheme: dark;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-feature-settings: "tnum" 1, "cv11" 1;
+  color-scheme: light;
+  font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
 html,
 body,
 #root {
   min-height: 100%;
-  background: #020617;
 }
 
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* atlas coordinate grid + faint paper tooth */
+  background-image:
+    linear-gradient(to right, rgba(27, 25, 21, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(27, 25, 21, 0.045) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.11 0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 32px 32px, 32px 32px, 160px 160px;
+}
+
+::selection {
+  background: var(--color-road);
+  color: var(--color-paper-2);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-road);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+  caret-color: var(--color-road);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule-2) transparent;
+}
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: var(--color-rule-2);
   border-radius: 999px;
-  border: 2px solid #020617;
+  border: 3px solid var(--color-paper);
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
 input[type="range"] {
-  height: 4px;
+  accent-color: var(--color-road);
+  height: 2px;
+}
+input[type="checkbox"] {
+  accent-color: var(--color-road);
+}
+
+/* condensed label voice used for every map label, column head and tab */
+.label {
+  font-family: var(--font-condensed);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.6875rem;
+  line-height: 1;
+  color: var(--color-ink-3);
+}
+
+.num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ink rule helpers */
+.rule-b {
+  border-bottom: 1px solid var(--color-rule);
+}
+.rule-t {
+  border-top: 1px solid var(--color-rule);
+}
+
+/* --- motion ------------------------------------------------------------ */
+@keyframes stamp-press {
+  0% {
+    opacity: 0;
+    transform: rotate(-2deg) scale(1.6);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(-2deg) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-2deg) scale(1);
+  }
+}
+@keyframes lay-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ink-tick {
+  from {
+    background-color: var(--color-yellow-soft);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.animate-stamp {
+  animation: stamp-press 260ms var(--ease-stamp) both;
+}
+.animate-lay-down {
+  animation: lay-down 240ms var(--ease-out) both;
+}
+.animate-ink-tick {
+  animation: ink-tick 1200ms var(--ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-stamp,
+  .animate-lay-down,
+  .animate-ink-tick {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { AlertTriangle, Info, OctagonAlert } from 'lucide-react'
+import { AlertTriangle, Info, OctagonAlert, X } from 'lucide-react'
 import type { Forecast, Shipment, TerminalRow, Unit } from '../types'
 import { cx, pct } from '../lib/format'
-import { Badge, Bar, Panel } from './ui'
+import { Bar, Panel, Tag, Th, type Tone } from './ui'
 import { NetworkMap } from './NetworkMap'
+
+const phaseTone: Record<string, Tone> = { idle: 'good', in_transit: 'info', deadheading: 'warn', turnaround: 'neutral', bid_pending: 'accent', committed: 'warn', maintenance: 'neutral', off_duty: 'neutral' }
 
 export function NetworkPanel({ terminals, units, forecast, active, open }: { terminals: TerminalRow[]; units: Unit[]; forecast: Forecast | null; active: Shipment[]; open: Shipment[] }) {
   const [selected, setSelected] = useState<string | null>(null)
@@ -12,83 +14,101 @@ export function NetworkPanel({ terminals, units, forecast, active, open }: { ter
   const warnings = forecast?.warnings ?? []
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-      <Panel title="Network" subtitle="Hubs sized by free capacity · click a hub for its roster" className="xl:row-span-2">
+    <div className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
+      <Panel title="Network" subtitle="Hubs sized by free units. Click a hub for its roster." className="xl:row-span-2" bodyClassName="p-2">
         <NetworkMap terminals={terminals} units={units} active={active} open={open} selected={selected} onSelect={setSelected} />
       </Panel>
 
-      <Panel title="Capacity warnings" subtitle="From the lock-aware forecast (capacity follows the freight)">
+      <Panel title="Road conditions" subtitle="From the lock-aware forecast: capacity follows the freight." bodyClassName="p-3">
         {warnings.length === 0 ? (
-          <div className="text-sm text-slate-500">No warnings — every hub is above its reserve for the next 24 sim hours.</div>
+          <p className="text-sm text-ink-2">Clear. Every hub stays above its reserve for the next 24 sim hours.</p>
         ) : (
-          <ul className="space-y-1.5">
+          <ul className="divide-y divide-rule">
             {warnings.map((w, i) => (
-              <li key={i} className={cx('flex items-start gap-2 rounded-md px-2 py-1.5 text-xs', w.level === 'critical' ? 'bg-rose-500/10 text-rose-200' : w.level === 'warning' ? 'bg-amber-500/10 text-amber-200' : 'bg-sky-500/10 text-sky-200')}>
-                {w.level === 'critical' ? <OctagonAlert size={14} className="mt-0.5 shrink-0" /> : w.level === 'warning' ? <AlertTriangle size={14} className="mt-0.5 shrink-0" /> : <Info size={14} className="mt-0.5 shrink-0" />}
-                <span>{w.message}</span>
+              <li key={i} className={cx('flex items-start gap-2 py-2 text-[13px] leading-snug', w.level === 'critical' ? 'text-red-ink' : w.level === 'warning' ? 'text-yellow-ink' : 'text-road-ink')}>
+                {w.level === 'critical' ? <OctagonAlert size={15} className="mt-0.5 shrink-0" /> : w.level === 'warning' ? <AlertTriangle size={15} className="mt-0.5 shrink-0" /> : <Info size={15} className="mt-0.5 shrink-0" />}
+                <span className="text-ink-2">{w.message}</span>
               </li>
             ))}
           </ul>
         )}
       </Panel>
 
-      <Panel title="Terminal utilization" subtitle="busy = hard-locked now · bid = soft-locked by outstanding bids · next = committed to a later pickup">
-        <div className="grid gap-2 sm:grid-cols-2">
-          {terminals.map((t) => {
-            const fc = forecast?.terminals[t.code] ?? []
-            return (
-              <button key={t.code} onClick={() => setSelected(selected === t.code ? null : t.code)} className={cx('rounded-lg border px-3 py-2 text-left transition hover:bg-slate-800/50', selected === t.code ? 'border-sky-500/60 bg-slate-800/60' : 'border-slate-800')}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-semibold text-slate-100">{t.code}</span>
-                    <span className="text-xs text-slate-400">{t.city}</span>
-                  </div>
-                  <Badge tone={t.level === 'critical' ? 'bad' : t.level === 'warning' ? 'warn' : 'good'}>
-                    {t.free_units} free
-                  </Badge>
-                </div>
-                <div className="mt-1.5 flex h-2 w-full overflow-hidden rounded bg-slate-800" title={`${t.busy_units} busy · ${t.soft_locked_units} bid · ${t.committed_units} next · ${t.free_units} free · ${t.out_of_service} out`}>
-                  <div className="bg-sky-500" style={{ width: `${(t.busy_units / Math.max(t.total_units, 1)) * 100}%` }} />
-                  <div className="bg-violet-500" style={{ width: `${(t.soft_locked_units / Math.max(t.total_units, 1)) * 100}%` }} />
-                  <div className="bg-amber-500/70" style={{ width: `${(t.committed_units / Math.max(t.total_units, 1)) * 100}%` }} />
-                  <div className="bg-emerald-500/70" style={{ width: `${(t.free_units / Math.max(t.total_units, 1)) * 100}%` }} />
-                  <div className="bg-slate-600" style={{ width: `${(t.out_of_service / Math.max(t.total_units, 1)) * 100}%` }} />
-                </div>
-                <div className="mt-1 flex items-center justify-between text-[10px] text-slate-500">
-                  <span className="whitespace-nowrap">
-                    util {pct(t.utilization, 0)} · {t.open_loads_from_here} open
-                  </span>
-                  <span className="whitespace-nowrap font-mono" title="projected free units now / +2h / +6h / +12h / +24h">
-                    {fc.map((p) => p.free).join('›')}
-                    <span className="ml-1 text-slate-600">@0·2·6·12·24h</span>
-                  </span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
+      <Panel title="Terminal utilization" subtitle="busy = hard-locked now · bid = soft-locked by outstanding bids · next = committed to a later pickup" bodyClassName="p-0">
+        <table className="num w-full text-left text-[13px]">
+          <thead className="border-b border-rule">
+            <tr>
+              <Th className="pl-3">Hub</Th>
+              <Th>Units</Th>
+              <Th right>Free</Th>
+              <Th right>Util</Th>
+              <Th right>Open</Th>
+              <Th className="pr-3" right>
+                Free @0·2·6·12·24h
+              </Th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-rule/70">
+            {terminals.map((t) => {
+              const fc = forecast?.terminals[t.code] ?? []
+              const total = Math.max(t.total_units, 1)
+              const on = selected === t.code
+              return (
+                <tr key={t.code} onClick={() => setSelected(on ? null : t.code)} className={cx('cursor-pointer transition-colors duration-150 hover:bg-paper', on && 'bg-road-soft/50')}>
+                  <td className="py-2 pl-3 pr-3">
+                    <div className="font-condensed text-[15px] font-bold uppercase tracking-[0.06em] text-ink">{t.code}</div>
+                    <div className="text-[11px] text-ink-3">{t.city}</div>
+                  </td>
+                  <td className="py-2 pr-3 align-middle">
+                    <div className="flex h-2 w-28 overflow-hidden rounded-[2px] bg-paper-3" title={`${t.busy_units} busy · ${t.soft_locked_units} bid · ${t.committed_units} next · ${t.free_units} free · ${t.out_of_service} out of service`}>
+                      <div className="bg-road" style={{ width: `${(t.busy_units / total) * 100}%` }} />
+                      <div className="bg-carbon" style={{ width: `${(t.soft_locked_units / total) * 100}%` }} />
+                      <div className="bg-yellow" style={{ width: `${(t.committed_units / total) * 100}%` }} />
+                      <div className="bg-green/70" style={{ width: `${(t.free_units / total) * 100}%` }} />
+                      <div className="bg-paper-4" style={{ width: `${(t.out_of_service / total) * 100}%` }} />
+                    </div>
+                  </td>
+                  <td className="py-2 pr-3 text-right">
+                    <Tag tone={t.level === 'critical' ? 'bad' : t.level === 'warning' ? 'warn' : 'good'}>{t.free_units} free</Tag>
+                  </td>
+                  <td className="py-2 pr-3 text-right text-ink-2">{pct(t.utilization, 0)}</td>
+                  <td className="py-2 pr-3 text-right text-ink-2">{t.open_loads_from_here}</td>
+                  <td className="py-2 pr-3 text-right font-condensed text-[13px] font-semibold tracking-[0.1em] text-ink-2">{fc.map((p) => p.free).join('·')}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </Panel>
 
       {sel && (
-        <Panel title={`${sel.code} roster · ${sel.name}`} subtitle={`${sel.usable_units} usable units · reserve ${sel.reserve}`} className="xl:col-span-2" right={<button onClick={() => setSelected(null)} className="text-xs text-slate-400 hover:text-slate-200">close</button>}>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {selUnits.map((u) => (
-              <div key={u.id} className="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono font-semibold text-slate-100">{u.unit_number}</span>
-                  <Badge tone={u.phase === 'idle' ? 'good' : u.phase === 'in_transit' || u.phase === 'deadheading' ? 'info' : u.phase === 'bid_pending' ? 'accent' : u.phase === 'maintenance' ? 'neutral' : 'warn'}>{u.phase.replace('_', ' ')}</Badge>
-                </div>
-                <div className="text-slate-400">{u.driver_name}</div>
-                {u.current_lock && (
-                  <div className="mt-1 text-[11px] text-slate-300">
-                    {u.current_lock.external_id} · {u.current_lock.lane_id}
-                    {u.progress != null && <Bar value={u.progress} max={1} className="mt-1" />}
-                  </div>
-                )}
-                {u.upcoming_locks.length > 0 && <div className="mt-1 text-[11px] text-amber-300">next: {u.upcoming_locks[0].external_id}</div>}
-              </div>
-            ))}
-          </div>
+        <Panel title={`${sel.code} roster · ${sel.name}`} subtitle={`${sel.usable_units} usable units · reserve ${sel.reserve}`} className="xl:col-span-2" right={<button onClick={() => setSelected(null)} className="inline-flex items-center gap-1 font-condensed text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-3 hover:text-ink"><X size={12} /> close</button>} bodyClassName="p-0">
+          <table className="num w-full text-left text-[13px]">
+            <thead className="border-b border-rule">
+              <tr>
+                <Th className="pl-3">Unit</Th>
+                <Th>Driver</Th>
+                <Th>Phase</Th>
+                <Th>Current load</Th>
+                <Th>Progress</Th>
+                <Th className="pr-3">Next</Th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-rule/70">
+              {selUnits.map((u) => (
+                <tr key={u.id}>
+                  <td className="py-2 pl-3 pr-3 font-condensed text-[14px] font-bold uppercase tracking-[0.06em]">{u.unit_number}</td>
+                  <td className="py-2 pr-3 text-ink-2">{u.driver_name}</td>
+                  <td className="py-2 pr-3">
+                    <Tag tone={phaseTone[u.phase] ?? 'neutral'}>{u.phase.replace('_', ' ')}</Tag>
+                  </td>
+                  <td className="py-2 pr-3 font-condensed text-[13px] font-semibold uppercase tracking-[0.04em] text-ink-2">{u.current_lock ? `${u.current_lock.external_id} · ${u.current_lock.lane_id}` : '—'}</td>
+                  <td className="py-2 pr-3">{u.progress != null ? <Bar value={u.progress} max={1} tone={u.phase === 'deadheading' ? 'warn' : 'info'} className="w-24" /> : <span className="text-ink-3">—</span>}</td>
+                  <td className="py-2 pr-3 font-condensed text-[13px] font-semibold uppercase tracking-[0.04em] text-yellow-ink">{u.upcoming_locks[0]?.external_id ?? ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </Panel>
       )}
     </div>
