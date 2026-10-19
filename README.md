@@ -11,8 +11,21 @@ every decision explained.
 
 ![Load board](docs/screenshots/board.png)
 
+## Video and presentation
+
+<table>
+<tr>
+<td width="50%"><a href="docs/media/lodestar-submission.mp4"><img src="docs/media/video-poster.png" alt="Submission video"/></a><br/><sub><b><a href="docs/media/lodestar-submission.mp4">Watch the submission video</a></b> — 4:53, 1080p. The problem, the product panel by panel, the engine, results and the enterprise path.</sub></td>
+<td width="50%"><a href="docs/presentation/lodestar-presentation.pdf"><img src="docs/media/presentation-cover.png" alt="Presentation"/></a><br/><sub><b><a href="docs/presentation/lodestar-presentation.pdf">Read the presentation</a></b> — 14 slides (PDF) with speaker notes in <a href="docs/presentation/SPEAKER-NOTES.md">SPEAKER-NOTES.md</a>.</sub></td>
+</tr>
+</table>
+
+The full-quality video (70 MB) and the PDF are also attached to the
+[v1.0-submission release](https://github.com/subodh-thallada/lodestar-dispatch/releases/tag/v1.0-submission).
+
 | Doc | What's in it |
 |---|---|
+| [docs/presentation/lodestar-presentation.pdf](docs/presentation/lodestar-presentation.pdf) | Submission deck: problem, product, engine, results, scaling, limitations |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagram, ERD, data flow, how time-window locking and scoring work |
 | [docs/REPORT.md](docs/REPORT.md) | Engineering & business report: constraints, scheduling, empty miles, use of history, volume vs profit, enterprise scaling |
 | [docs/DEMO.md](docs/DEMO.md) | Six-minute demo runbook |
